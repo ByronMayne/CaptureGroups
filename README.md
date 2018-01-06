@@ -31,7 +31,7 @@ private class MyEditorWindow : EditorWindow
         // The end of the picture.
         
         // A button to invoke the capture process
-        if(GUILayout.Buttong("Preform Capture"))
+        if(GUILayout.Button("Preform Capture"))
         {
             // Start the capture.
             CaptureGroup.PreformCapture(this);
