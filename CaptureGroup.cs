@@ -6,6 +6,7 @@ using UnityEngine;
 
 public static class CaptureGroup
 {
+    public delegate void RepaintDelegate();
     public class CaptureState
     {
         public Rect Bounds;
@@ -14,16 +15,30 @@ public static class CaptureGroup
 
     private static Stack<CaptureState> _captureStack;
     private static int _isPreformingCapture;
-    private static EditorWindow _activeEditor;
+    private static RepaintDelegate _onRepaint;
+    private static float _viewHeight;
+    private static float _viewYOffset;
     private static EventType _lastEvent;
     private static bool _isDebugEnabled;
     private static GUIStyle _debugStyle;
     private static GUIContent _cachedContent;
+    private static RectOffset _padding;
 
     static CaptureGroup()
     {
         _captureStack = new Stack<CaptureState>();
         _cachedContent = new GUIContent();
+        _padding = new RectOffset(4, 4, 4, 4);
+    }
+
+    /// <summary>
+    /// How much bigger that screen shots should be beyond the group. Useful
+    /// to make sure images don't get clipped by the edge.
+    /// </summary>
+    public static RectOffset CapturePadding
+    {
+        get { return _padding; }
+        set { _padding = value; }
     }
 
     private static bool IsLayout
@@ -81,12 +96,12 @@ public static class CaptureGroup
 
                     if (_isPreformingCapture == 0)
                     {
-                        _activeEditor = null;
+                        _onRepaint = null;
                         AssetDatabase.Refresh();
                     }
                     else
                     {
-                        _activeEditor.Repaint();
+                        _onRepaint.Invoke();
                     }
                 }
             }
@@ -114,7 +129,12 @@ public static class CaptureGroup
         // Get our bounds
         Rect bounds = state.Bounds;
         // Inverse the position of y because the layout system top left is zero and screen position is bottom left.
-        bounds.y = _activeEditor.position.height - bounds.y - bounds.height;
+        bounds.y = _viewHeight - bounds.y - bounds.height + _viewYOffset;
+
+        bounds.y -= _padding.top;
+        bounds.height += _padding.top + _padding.bottom;
+        bounds.x -= _padding.left;
+        bounds.width += _padding.left + _padding.right;
         // Create our next texture 
         Texture2D texture = new Texture2D(Mathf.CeilToInt(bounds.width), Mathf.CeilToInt(bounds.height), TextureFormat.RGBA32, false);
         // Read the pixels from the screen
@@ -139,9 +159,20 @@ public static class CaptureGroup
 
     public static void PreformCapture(EditorWindow editor)
     {
-        _activeEditor = editor;
+        _viewHeight = editor.position.y;
+        _onRepaint = editor.Repaint;
         _isPreformingCapture = 2;
-        _activeEditor.Repaint();
+        _viewYOffset = 0f;
+    }
+
+
+    public static void PreformCapture(Editor editor)
+    {
+        _viewHeight = Screen.height;
+        _onRepaint = editor.Repaint;
+        _isPreformingCapture = 2;
+        // Inspectors have an offset 
+        _viewYOffset -= EditorGUIUtility.singleLineHeight;
     }
 
     public static bool ShowDebug
