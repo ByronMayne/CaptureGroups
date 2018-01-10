@@ -43,3 +43,7 @@ private class MyEditorWindow : EditorWindow
 ## Debug
 To visualize the captures use the `CaptureGroup.ShowDebug` option which will draw the green overlay.
 
+## In Development 
+* The option to take a full screen shot and instead of cropping it draw a GUIStyle around the element. 
+
+
